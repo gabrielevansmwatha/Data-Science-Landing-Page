@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Details - Fragility Index Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container content">
+        <h1>Technical Details</h1>
+
+        <h2>Data Collection</h2>
+        <ul>
+            <li><strong>Source:</strong> Like the Fragile States Index, this dataset is a hypothetical version of the Fragility Index.
+            </li>
+            <li><strong>Format:</strong> Before being manually entered into Python for analysis, the data was in a text format. In reality, information could be gathered through:
+            </li>
+            <ul>
+                <li>API or direct download from a website.</li>
+                <li>Excel or CSV files for structured data import.</li>
+            </ul>
+        </ul>
+
+        <h2>Data Cleaning</h2>
+        <pre><code>
+import pandas as pd
+import numpy as np
+
+# Load data
+df = pd.read_csv('fragility_data.csv')
+
+# Check for missing values
+print(df.isnull().sum())
+
+# Convert 'Rank' to numeric
+df['Rank'] = df['Rank'].str.extract('(\d+)').astype(int)
+
+# Convert 'Total' and other indicators to float
+for col in df.columns[3:]:
+    df[col] = df[col].astype(float)
+
+# Check for any anomalies
+print(df.describe())
+        </code></pre>
+
+        <h2>Exploratory Data Analysis (EDA)</h2>
+        <pre><code>
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Distribution of Total Fragility Score
+sns.histplot(df['Total'], kde=True)
+plt.title('Distribution of Total Fragility Scores')
+plt.xlabel('Total Score')
+plt.show()
+
+# Correlation matrix
+correlation_matrix = df.iloc[:, 3:].corr()
+plt.figure(figsize=(12, 10))
+sns.heatmap(correlation_matrix, annot=False, cmap='coolwarm')
+plt.title('Correlation Heatmap of Fragility Indicators')
+plt.show()
+
+# Pairplot for key indicators
+sns.pairplot(df, vars=['Total', 'S1: Demographic Pressures', 'E1: Economy'])
+plt.show()
+
+# Relationships between key variables
+sns.scatterplot(data=df, x='E1: Economy', y='Total', hue='S1: Demographic Pressures')
+plt.title('Economy vs Total Fragility Score by Demographic Pressures')
+plt.show()
+        </code></pre>
+
+        <h2>Unsupervised Learning</h2>
+        <h3>K-means Clustering</h3>
+        <pre><code>
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+
+features = df[['Total', 'S1: Demographic Pressures', 'S2: Refugees and IDPs', 'C3: Group Grievance', 
+               'E3: Human Flight and Brain Drain', 'E2: Economic Inequality', 'E1: Economy', 
+               'P1: State Legitimacy', 'P2: Public Services', 'P3: Human Rights', 'C1: Security Apparatus', 
+               'C2: Factionalized Elites', 'X1: External Intervention']]
+
+scaler = StandardScaler()
+features_scaled = scaler.fit_transform(features)
+
+# Elbow method for k selection
+inertias = []
+for k in range(1, 11):
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(features_scaled)
+    inertias.append(kmeans.inertia_)
+
+plt.plot(range(1, 11), inertias, marker='o')
+plt.title('Elbow Method for Optimal k')
+plt.xlabel('Number of clusters')
+plt.ylabel('Inertia')
+plt.show()
+
+kmeans = KMeans(n_clusters=3, random_state=42)
+clusters = kmeans.fit_predict(features_scaled)
+df['Cluster'] = clusters
+
+# Visualization of clusters
+plt.scatter(df['E1: Economy'], df['Total'], c=df['Cluster'], cmap='viridis')
+plt.xlabel('Economy')
+plt.ylabel('Total Fragility Score')
+plt.title('K-means Clustering')
+plt.colorbar(label='Cluster')
+plt.show()
+        </code></pre>
+
+        <h2>Supervised Learning</h2>
+        <h3>Linear Regression</h3>
+        <pre><code>
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+
+X = features.drop('Total', axis=1)
+y = features['Total']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f'Mean Squared Error: {mse}')
+print(f'R-squared Score: {r2}')
+
+feature_importance = pd.DataFrame({'feature': X.columns, 'importance': abs(model.coef_)})
+feature_importance = feature_importance.sort_values('importance', ascending=False)
+print(feature_importance)
+        </code></pre>
+
+        <h2>Visualization</h2>
+        <p>Static charts with matplotlib/seaborn. For interactive plots:</p>
+        <pre><code>
+import plotly.express as px
+
+fig = px.scatter(df, x='E1: Economy', y='Total', color='Cluster', 
+                 hover_data=['Country'], title="Economy vs Total Fragility Score by Cluster")
+fig.show()
+        </code></pre>
+
+        <h2>Narrative Development</h2>
+        <ul>
+            <li>Talk about the relationship between the total fragility score and the indicators.  </li>
+            <li>Describe clusters using common characteristics or settings.</li>
+            <li>Emphasize the model's predictions in relation to actual situations.
+            </li>
+        </ul>
+
+        <h2>Deployment Considerations</h2>
+        <ul>
+            <li>Webpage hosted with Python web frameworks or static site generators.
+            </li>
+            <li>JavaScript libraries are used to create interactive components that improve user interaction.            </li>
+</ul>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
